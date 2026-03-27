@@ -1,7 +1,6 @@
 export interface ResumeProfile {
   name?: string;
   email?: string;
-  phone?: string;
   summary: string;
   skills: string[];
   jobTitles: string[];
@@ -32,8 +31,10 @@ export interface MatchedJob extends JobListing {
   missingSkills: string[];
 }
 
+export type SearchStage = "idle" | "analyzing" | "searching" | "matching" | "done" | "error";
+
 export interface SearchStatus {
-  stage: "idle" | "analyzing" | "searching" | "matching" | "done" | "error";
+  stage: SearchStage;
   message: string;
   progress: number;
 }

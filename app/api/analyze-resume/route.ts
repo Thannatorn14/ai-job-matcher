@@ -1,0 +1,40 @@
+import { NextRequest, NextResponse } from "next/server";
+import { analyzeResume } from "@/lib/claude";
+
+export async function POST(req: NextRequest) {
+  try {
+    const form = await req.formData();
+    const file = form.get("file") as File | null;
+    const text = form.get("text") as string | null;
+
+    let resumeText = "";
+
+    if (file && file.size > 0) {
+      const buf = Buffer.from(await file.arrayBuffer());
+      if (file.name.toLowerCase().endsWith(".pdf")) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mod = (await import("pdf-parse")) as any;
+        const parser = mod.default ?? mod;
+        const result = await parser(buf);
+        resumeText = result.text;
+      } else {
+        resumeText = buf.toString("utf-8");
+      }
+    } else if (text) {
+      resumeText = text;
+    }
+
+    if (!resumeText.trim()) {
+      return NextResponse.json({ error: "No resume content provided." }, { status: 400 });
+    }
+
+    const profile = await analyzeResume(resumeText);
+    return NextResponse.json({ profile });
+  } catch (err) {
+    console.error("[analyze-resume]", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to analyze resume." },
+      { status: 500 }
+    );
+  }
+}

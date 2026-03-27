@@ -1,0 +1,41 @@
+{
+  "name": "ai-job-matcher",
+  "version": "0.1.0",
+  "description": "Mr. Patiphan  \tTangmongkolpaisan \t6588103 ,Mr. Thanatorn Thongsuk\t\t\t6588109 ,Mr. Anecha    \tPrasobvittaya\t\t6588153",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:37329/git/Thannatorn14/Job-Search"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
+    "lucide-react": "^1.7.0",
+    "next": "^16.2.1",
+    "pdf-parse": "^2.4.5",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
+    "@types/node": "^25.5.0",
+    "@types/pdf-parse": "^1.1.5",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.1",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3"
+  }
+}
