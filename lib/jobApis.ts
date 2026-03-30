@@ -5,16 +5,16 @@ const ADZUNA_ID = process.env.ADZUNA_APP_ID || "";
 const ADZUNA_KEY = process.env.ADZUNA_APP_KEY || "";
 const RAPID_KEY = process.env.RAPIDAPI_KEY || "";
 
+// ── Adzuna ────────────────────────────────────────────────────────────────────
+
 async function searchAdzuna(query: string, perPage = 8): Promise<JobListing[]> {
   if (!ADZUNA_ID || !ADZUNA_KEY) return [];
-
   const params = new URLSearchParams({
     app_id: ADZUNA_ID,
     app_key: ADZUNA_KEY,
     results_per_page: String(perPage),
     what: query,
   });
-
   try {
     const res = await fetch(
       `https://api.adzuna.com/v1/api/jobs/${COUNTRY}/search/1?${params}`,
@@ -22,7 +22,6 @@ async function searchAdzuna(query: string, perPage = 8): Promise<JobListing[]> {
     );
     if (!res.ok) return [];
     const data = await res.json();
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (data.results ?? []).map((j: any) => ({
       id: `adzuna-${j.id}`,
@@ -40,16 +39,16 @@ async function searchAdzuna(query: string, perPage = 8): Promise<JobListing[]> {
   }
 }
 
+// ── JSearch (RapidAPI) ────────────────────────────────────────────────────────
+
 async function searchJSearch(query: string, perPage = 6): Promise<JobListing[]> {
   if (!RAPID_KEY) return [];
-
   const params = new URLSearchParams({
     query,
     page: "1",
     num_pages: "1",
     date_posted: "week",
   });
-
   try {
     const res = await fetch(`https://jsearch.p.rapidapi.com/search?${params}`, {
       headers: {
@@ -60,7 +59,6 @@ async function searchJSearch(query: string, perPage = 6): Promise<JobListing[]> 
     });
     if (!res.ok) return [];
     const data = await res.json();
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return ((data.data ?? []) as any[]).slice(0, perPage).map((j) => ({
       id: `jsearch-${j.job_id}`,
@@ -79,10 +77,100 @@ async function searchJSearch(query: string, perPage = 6): Promise<JobListing[]> 
   }
 }
 
+// ── Remotive (free, no key needed — remote/tech jobs) ─────────────────────────
+
+async function searchRemotive(query: string, limit = 8): Promise<JobListing[]> {
+  try {
+    const params = new URLSearchParams({ search: query, limit: String(limit) });
+    const res = await fetch(`https://remotive.com/api/remote-jobs?${params}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (data.jobs ?? []).map((j: any) => ({
+      id: `remotive-${j.id}`,
+      title: j.title ?? "",
+      company: j.company_name ?? "Unknown",
+      location: j.candidate_required_location || "Remote",
+      description: j.description ?? "",
+      salary: j.salary || "",
+      jobType: j.job_type ?? undefined,
+      postedAt: j.publication_date ?? undefined,
+      applyUrl: j.url ?? "",
+      source: "Remotive",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ── Arbeitnow (free, no key needed — EU + remote jobs) ───────────────────────
+
+async function searchArbeitnow(query: string, perPage = 6): Promise<JobListing[]> {
+  try {
+    const params = new URLSearchParams({ q: query });
+    const res = await fetch(`https://www.arbeitnow.com/api/job-board-api?${params}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((data.data ?? []) as any[]).slice(0, perPage).map((j) => ({
+      id: `arbeitnow-${j.slug}`,
+      title: j.title ?? "",
+      company: j.company_name ?? "Unknown",
+      location: j.location ?? (j.remote ? "Remote" : ""),
+      description: j.description ?? "",
+      jobType: j.job_types?.[0] ?? undefined,
+      postedAt: j.created_at ? new Date(j.created_at * 1000).toISOString() : undefined,
+      applyUrl: j.url ?? "",
+      source: "Arbeitnow",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ── The Muse (free, no key needed — US jobs) ──────────────────────────────────
+
+async function searchTheMuse(query: string, perPage = 6): Promise<JobListing[]> {
+  try {
+    const params = new URLSearchParams({ query, page: "1", descending: "true" });
+    const res = await fetch(`https://www.themuse.com/api/public/jobs?${params}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((data.results ?? []) as any[]).slice(0, perPage).map((j) => ({
+      id: `themuse-${j.id}`,
+      title: j.name ?? "",
+      company: j.company?.name ?? "Unknown",
+      location:
+        j.locations?.map((l: { name: string }) => l.name).join(", ") || "Remote",
+      description: j.contents ?? "",
+      jobType: j.levels?.[0]?.name ?? undefined,
+      postedAt: j.publication_date ?? undefined,
+      applyUrl: j.refs?.landing_page ?? "",
+      source: "The Muse",
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ── Aggregator ────────────────────────────────────────────────────────────────
+
 export async function searchAllSources(queries: string[]): Promise<JobListing[]> {
-  const promises = queries.slice(0, 4).flatMap((q) => [
+  const top = queries.slice(0, 3);
+
+  const promises = top.flatMap((q) => [
     searchAdzuna(q),
     searchJSearch(q),
+    searchRemotive(q),
+    searchArbeitnow(q),
+    searchTheMuse(q),
   ]);
 
   const results = await Promise.all(promises);
@@ -98,6 +186,8 @@ export async function searchAllSources(queries: string[]): Promise<JobListing[]>
   });
 }
 
+// ── Salary formatters ─────────────────────────────────────────────────────────
+
 function salaryRange(min?: number, max?: number): string {
   if (!min && !max) return "";
   if (min && max) return `$${Math.round(min / 1000)}k – $${Math.round(max / 1000)}k`;
@@ -109,7 +199,8 @@ function salaryFromJSearch(min?: number, max?: number, period?: string): string 
   if (!min && !max) return "";
   const s = period === "HOUR" ? "/hr" : period === "YEAR" ? "/yr" : "";
   if (min && max) {
-    if (period === "YEAR") return `$${Math.round(min / 1000)}k – $${Math.round(max / 1000)}k${s}`;
+    if (period === "YEAR")
+      return `$${Math.round(min / 1000)}k – $${Math.round(max / 1000)}k${s}`;
     return `$${min} – $${max}${s}`;
   }
   return "";
