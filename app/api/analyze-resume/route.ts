@@ -12,10 +12,9 @@ export async function POST(req: NextRequest) {
     if (file && file.size > 0) {
       const buf = Buffer.from(await file.arrayBuffer());
       if (file.name.toLowerCase().endsWith(".pdf")) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mod = (await import("pdf-parse")) as any;
-        const parser = mod.default ?? mod;
-        const result = await parser(buf);
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const pdfParse = require("pdf-parse");
+        const result = await pdfParse(buf);
         resumeText = result.text;
       } else {
         resumeText = buf.toString("utf-8");
